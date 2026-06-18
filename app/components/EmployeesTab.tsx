@@ -1,37 +1,41 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Users, X, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, X, Check, Loader2 } from "lucide-react";
 import { Employee } from "../types";
-import { getEmployees, saveEmployees } from "../lib/storage";
+import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from "../lib/db";
 
 const COLORS = ["#F97316","#3B82F6","#10B981","#8B5CF6","#EC4899","#EAB308","#14B8A6","#F43F5E"];
 const EMPTY: Omit<Employee, "id"> = { name: "", role: "", color: COLORS[0] };
 
 export default function EmployeesTab() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [form, setForm] = useState(EMPTY);
 
-  useEffect(() => { setEmployees(getEmployees()); }, []);
+  async function load() { setLoading(true); setEmployees(await getEmployees()); setLoading(false); }
+  useEffect(() => { load(); }, []);
 
-  function persist(data: Employee[]) { setEmployees(data); saveEmployees(data); }
   function openAdd() { setForm(EMPTY); setModal("add"); }
   function openEdit(e: Employee) { setEditing(e); setForm({ name: e.name, role: e.role, color: e.color }); setModal("edit"); }
   function close() { setModal(null); setEditing(null); }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.name.trim()) return;
-    if (modal === "add") {
-      persist([...employees, { ...form, id: `e${Date.now()}` }]);
-    } else if (modal === "edit" && editing) {
-      persist(employees.map((e) => e.id === editing.id ? { ...editing, ...form } : e));
-    }
+    setSaving(true);
+    if (modal === "add") await createEmployee(form);
+    else if (modal === "edit" && editing) await updateEmployee({ ...editing, ...form });
+    await load();
+    setSaving(false);
     close();
   }
 
-  function handleDelete(id: string) {
-    if (confirm("Remover este funcionário?")) persist(employees.filter((e) => e.id !== id));
+  async function handleDelete(id: string) {
+    if (!confirm("Remover este funcionário?")) return;
+    await deleteEmployee(id);
+    await load();
   }
 
   function initials(name: string) { return name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase(); }
@@ -48,33 +52,36 @@ export default function EmployeesTab() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {employees.map((e) => (
-          <div key={e.id} className="bg-[#111113] border border-[#27272A] rounded-xl p-4 hover:border-[#3F3F46] transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{ backgroundColor: e.color }}>
-                {initials(e.name)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm truncate">{e.name}</p>
-                <p className="text-[#A1A1AA] text-xs">{e.role || "—"}</p>
-              </div>
-              <div className="flex gap-1">
-                <button onClick={() => openEdit(e)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] transition-colors"><Pencil size={13} /></button>
-                <button onClick={() => handleDelete(e.id)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/15 text-[#A1A1AA] hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-[#52525B]"><Loader2 size={24} className="animate-spin" /></div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {employees.map((e) => (
+            <div key={e.id} className="bg-[#111113] border border-[#27272A] rounded-xl p-4 hover:border-[#3F3F46] transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{ backgroundColor: e.color }}>
+                  {initials(e.name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm truncate">{e.name}</p>
+                  <p className="text-[#A1A1AA] text-xs">{e.role || "—"}</p>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => openEdit(e)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] transition-colors"><Pencil size={13} /></button>
+                  <button onClick={() => handleDelete(e.id)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/15 text-[#A1A1AA] hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-
-        {employees.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center py-16 text-[#52525B]">
-            <Users size={40} className="mb-3 opacity-30" />
-            <p className="text-sm">Nenhum funcionário cadastrado</p>
-            <button onClick={openAdd} className="mt-3 text-[#F97316] text-sm hover:underline">Adicionar primeiro funcionário</button>
-          </div>
-        )}
-      </div>
+          ))}
+          {employees.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-16 text-[#52525B]">
+              <Users size={40} className="mb-3 opacity-30" />
+              <p className="text-sm">Nenhum funcionário cadastrado</p>
+              <button onClick={openAdd} className="mt-3 text-[#F97316] text-sm hover:underline">Adicionar primeiro funcionário</button>
+            </div>
+          )}
+        </div>
+      )}
 
       {modal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -103,8 +110,8 @@ export default function EmployeesTab() {
             </div>
             <div className="flex gap-3 p-5 pt-0">
               <button onClick={close} className="flex-1 bg-[#27272A] hover:bg-[#3F3F46] rounded-lg py-2.5 text-sm font-medium transition-colors">Cancelar</button>
-              <button onClick={handleSave} className="flex-1 bg-[#F97316] hover:bg-[#FB923C] text-white rounded-lg py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                <Check size={15} /> Salvar
+              <button onClick={handleSave} disabled={saving} className="flex-1 bg-[#F97316] hover:bg-[#FB923C] disabled:opacity-50 text-white rounded-lg py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} />} Salvar
               </button>
             </div>
           </div>
