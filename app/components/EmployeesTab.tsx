@@ -96,7 +96,7 @@ export default function EmployeesTab() {
                 <label className="text-xs font-medium text-[#A1A1AA] mb-2 block">Cor de identificação</label>
                 <div className="flex flex-wrap gap-2">
                   {COLORS.map((c) => (
-                    <button key={c} onClick={() => setForm({ ...form, color: c })} className={`w-8 h-8 rounded-full transition-transform ${form.color === c ? "ring-2 ring-offset-2 ring-offset-[#111113] scale-110" : "hover:scale-110"}`} style={{ backgroundColor: c, ringColor: c }} />
+                    <button key={c} onClick={() => setForm({ ...form, color: c })} className={`w-8 h-8 rounded-full transition-transform ${form.color === c ? "ring-2 ring-offset-2 ring-offset-[#111113] scale-110" : "hover:scale-110"}`} style={{ backgroundColor: c }} />
                   ))}
                 </div>
               </div>
