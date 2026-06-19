@@ -5,7 +5,6 @@ import AgendaTab from "./components/AgendaTab";
 import ServicesTab from "./components/ServicesTab";
 import EmployeesTab from "./components/EmployeesTab";
 import RevenueTab from "./components/RevenueTab";
-import { createClient } from "./lib/supabase-browser";
 import { useRouter } from "next/navigation";
 
 const TABS = [
@@ -23,8 +22,7 @@ export default function Home() {
   const router = useRouter();
 
   async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/api/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
   }

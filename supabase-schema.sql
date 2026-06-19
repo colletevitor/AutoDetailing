@@ -1,19 +1,17 @@
 -- ================================================================
 -- AutoDetailing Pro — Schema do Supabase
--- Cole este SQL no editor do Supabase (SQL Editor > New Query)
+-- Cole este SQL no SQL Editor do Supabase e clique em Run
 -- ================================================================
 
--- Tabela de serviços
 create table if not exists services (
   id          uuid primary key default gen_random_uuid(),
   name        text not null,
   price       numeric(10,2) not null default 0,
-  duration    integer not null default 60,  -- em minutos
+  duration    integer not null default 60,
   description text,
   created_at  timestamptz default now()
 );
 
--- Tabela de funcionários
 create table if not exists employees (
   id         uuid primary key default gen_random_uuid(),
   name       text not null,
@@ -22,7 +20,6 @@ create table if not exists employees (
   created_at timestamptz default now()
 );
 
--- Tabela de agendamentos
 create table if not exists appointments (
   id           uuid primary key default gen_random_uuid(),
   date         date not null,
@@ -39,40 +36,22 @@ create table if not exists appointments (
   created_at   timestamptz default now()
 );
 
--- ================================================================
--- Row Level Security (RLS) — só usuários autenticados acessam
--- ================================================================
-alter table services    enable row level security;
-alter table employees   enable row level security;
+-- Permite acesso público (sem autenticação do Supabase)
+-- O controle de acesso é feito pelo login do próprio app
+alter table services     enable row level security;
+alter table employees    enable row level security;
 alter table appointments enable row level security;
 
--- Políticas: qualquer usuário logado pode ler e escrever
-create policy "auth_all_services"
-  on services for all
-  to authenticated
-  using (true)
-  with check (true);
+create policy "public_all_services"     on services     for all using (true) with check (true);
+create policy "public_all_employees"    on employees    for all using (true) with check (true);
+create policy "public_all_appointments" on appointments for all using (true) with check (true);
 
-create policy "auth_all_employees"
-  on employees for all
-  to authenticated
-  using (true)
-  with check (true);
-
-create policy "auth_all_appointments"
-  on appointments for all
-  to authenticated
-  using (true)
-  with check (true);
-
--- ================================================================
--- Dados iniciais de exemplo (opcional — pode apagar)
--- ================================================================
+-- Dados iniciais de exemplo
 insert into services (name, price, duration, description) values
-  ('Lavagem Simples',    50,  60,  'Lavagem externa básica'),
-  ('Lavagem Completa',   120, 120, 'Lavagem interna e externa'),
-  ('Polimento',          350, 240, 'Polimento completo da lataria'),
-  ('Vitrificação',       800, 480, 'Proteção cerâmica'),
+  ('Lavagem Simples',      50,  60,  'Lavagem externa básica'),
+  ('Lavagem Completa',     120, 120, 'Lavagem interna e externa'),
+  ('Polimento',            350, 240, 'Polimento completo da lataria'),
+  ('Vitrificação',         800, 480, 'Proteção cerâmica'),
   ('Higienização Interna', 200, 180, 'Limpeza completa do interior');
 
 insert into employees (name, role, color) values
